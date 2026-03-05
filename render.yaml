@@ -1,0 +1,51 @@
+services:
+  - type: web
+    plan: free
+    runtime: docker
+    name: n8n-ultra-media
+    dockerfilePath: ./Dockerfile
+    envVars:
+      # ── Core Render + n8n URL vars (update after deploy) ──
+      - key: WEBHOOK_URL
+        value: https://n8n-ultra-media-xxx.onrender.com/          # ← your actual Render URL
+      - key: N8N_HOST
+        value: n8n-ultra-media-xxx.onrender.com
+      - key: N8N_PROTOCOL
+        value: https
+      - key: N8N_EDITOR_BASE_URL
+        value: https://n8n-ultra-media-xxx.onrender.com/
+      - key: N8N_PROXY_HOPS
+        value: 1
+
+      # ── Timezone & Basics ──
+      - key: GENERIC_TIMEZONE
+        value: America/Los_Angeles
+      - key: TZ
+        value: America/Los_Angeles
+
+      # ── Binary data (filesystem safe for free tier; rclone handles B2) ──
+      - key: N8N_DEFAULT_BINARY_DATA_MODE
+        value: filesystem
+
+      # ── Backblaze B2 for rclone (add real values or use Render secrets) ──
+      - key: BACKBLAZE_KEY_ID
+        value: YOUR_KEY_ID_HERE
+      - key: BACKBLAZE_APP_KEY
+        value: YOUR_APP_KEY_HERE
+
+      # ── Recommended additions (uncomment/add as needed) ──
+      # - key: N8N_LOG_LEVEL
+      #   value: info
+      # - key: N8N_ENCRYPTION_KEY
+      #   generateValue: true   # auto-generates secure key (best!)
+      # - key: EXECUTIONS_DATA_PRUNE
+      #   value: true
+      # - key: EXECUTIONS_DATA_MAX_AGE
+      #   value: 168
+
+    healthCheckPath: /healthz
+    autoDeploy: true
+
+databases:
+  - name: n8n-db
+    plan: free
