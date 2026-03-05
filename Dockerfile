@@ -2,7 +2,7 @@ FROM docker.n8n.io/n8nio/n8n:2.10.3
 
 USER root
 
-# Bootstrap apk using static binary from Alpine GitLab (works in hardened n8n images)
+# Bootstrap apk using static binary from Alpine GitLab (2026-compatible path)
 RUN wget -q -O /tmp/apk.static \
     https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic/v2.14.4/x86_64/apk.static && \
     chmod +x /tmp/apk.static && \
@@ -11,13 +11,13 @@ RUN wget -q -O /tmp/apk.static \
     rm /tmp/apk.static && \
     apk update && apk upgrade --no-cache
 
-# Now apk is fully functional — install everything else
+# Install all tools (apk succeeded previously)
 RUN apk add --no-cache \
     ffmpeg aria2 rclone exiftool mediainfo sox lame qpdf \
     poppler-utils tesseract-ocr imagemagick ghostscript \
     chromium chromium-chromedriver nss freetype harfbuzz ca-certificates \
     py3-pip curl jq git tzdata && \
-    # yt-dlp with hash validation
+    # yt-dlp with hash validation (worked in your log)
     wget -q -O /usr/local/bin/yt-dlp \
       https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp && \
     wget -q -O /tmp/SHA2-256SUMS \
@@ -26,10 +26,10 @@ RUN apk add --no-cache \
     grep "yt-dlp$" /tmp/SHA2-256SUMS | sha256sum -c - && \
     chmod +x /usr/local/bin/yt-dlp && \
     rm /tmp/SHA2-256SUMS && \
-    # Backblaze b2 CLI
-    pip3 install --no-cache-dir b2
+    # b2 CLI: override PEP 668 (safe in container)
+    pip3 install --no-cache-dir --break-system-packages b2
 
-# Python venv
+# Python venv for Code nodes (pandas, etc.) — this already uses venv, so no PEP issue here
 RUN python3 -m venv /opt/venv && \
     /opt/venv/bin/pip install --upgrade pip && \
     /opt/venv/bin/pip install --no-cache-dir pandas numpy pillow requests beautifulsoup4 yt_dlp opencv-python-headless
