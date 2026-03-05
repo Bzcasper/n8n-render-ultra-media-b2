@@ -2,20 +2,22 @@ FROM docker.n8n.io/n8nio/n8n:2.10.3
 
 USER root
 
-# 2026 APK FIX: Bootstrap apk-tools using wget (curl is missing in hardened image)
-RUN wget -q -O /tmp/apk-tools.apk \
-    https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/apk-tools-2.14.8-r0.apk && \
-    tar -xzf /tmp/apk-tools.apk -C / --strip-components=1 && \
-    rm /tmp/apk-tools.apk && \
+# Bootstrap apk using static binary from Alpine GitLab (works in hardened n8n images)
+RUN wget -q -O /tmp/apk.static \
+    https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic/v2.14.4/x86_64/apk.static && \
+    chmod +x /tmp/apk.static && \
+    /tmp/apk.static -X http://dl-cdn.alpinelinux.org/alpine/v3.22/main \
+      -U --allow-untrusted --initdb add apk-tools && \
+    rm /tmp/apk.static && \
     apk update && apk upgrade --no-cache
 
-# ALL MEDIA + STORAGE + HACK TOOLS (now apk works)
+# Now apk is fully functional — install everything else
 RUN apk add --no-cache \
     ffmpeg aria2 rclone exiftool mediainfo sox lame qpdf \
     poppler-utils tesseract-ocr imagemagick ghostscript \
     chromium chromium-chromedriver nss freetype harfbuzz ca-certificates \
     py3-pip curl jq git tzdata && \
-    # yt-dlp with hash validation (secure download)
+    # yt-dlp with hash validation
     wget -q -O /usr/local/bin/yt-dlp \
       https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp && \
     wget -q -O /tmp/SHA2-256SUMS \
@@ -27,7 +29,7 @@ RUN apk add --no-cache \
     # Backblaze b2 CLI
     pip3 install --no-cache-dir b2
 
-# Python venv (fixes Python runner + pandas/opencv)
+# Python venv
 RUN python3 -m venv /opt/venv && \
     /opt/venv/bin/pip install --upgrade pip && \
     /opt/venv/bin/pip install --no-cache-dir pandas numpy pillow requests beautifulsoup4 yt_dlp opencv-python-headless
